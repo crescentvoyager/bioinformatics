@@ -1,0 +1,23 @@
+# Salmon merged data files
+salmon.merged.*
+[alex]salmon.merged.*
+
+# Common data file patterns
+*.csv
+*.tsv
+*.txt
+
+# R/RStudio files
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Output directories
+outputs/
+results/
+
+# System files
+.DS_Store
+Thumbs.db
