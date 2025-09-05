@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>31 Marker Protein Analysis Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: white;
+            color: #333;
+            line-height: 1.6;
+            padding: 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .report-header {
+            text-align: center;
+            border-bottom: 3px solid #007acc;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .report-header h1 {
+            color: #007acc;
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .report-header h2 {
+            color: #555;
+            font-size: 20px;
+            font-weight: 400;
+        }
+        
+        .info-bar {
+            display: flex;
+            justify-content: space-between;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #007acc;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .panel-description {
+            background: #f0f8ff;
+            padding: 25px;
+            border-radius: 8px;
+            border-left: 5px solid #007acc;
+            margin-bottom: 30px;
+        }
+        
+        .panel-description h3 {
+            color: #007acc;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+        
+        .panel-description p {
+            color: #444;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        
+        .results-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .data-table thead {
+            background: #007acc;
+            color: white;
+        }
+        
+        .data-table th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .data-table th.numeric {
+            text-align: right;
+        }
+        
+        .data-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .data-table td.numeric {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+        
+        .data-table tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .data-table tbody tr:hover {
+            background: #e3f2fd;
+        }
+        
+        .protein-name {
+            color: #007acc;
+            font-weight: 600;
+        }
+        
+        .report-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e9ecef;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        /* Relative Position Styling */
+        .relative-position {
+            font-weight: 600;
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .position-low {
+            color: #3498db;
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .position-high {
+            color: #e74c3c;
+            background-color: rgba(231, 76, 60, 0.1);
+        }
+
+        .position-normal {
+            color: #27ae60;
+            background-color: rgba(39, 174, 96, 0.1);
+        }
+
+        .position-na {
+            color: #95a5a6;
+            background-color: rgba(149, 165, 166, 0.1);
+        }
+        
+        @media print {
+            body {
+                padding: 20px;
+            }
+            
+            .data-table {
+                font-size: 10px;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 6px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <h1>31 Marker Protein Analysis Report</h1>
+        <h2 id="panel-title">Loading...</h2>
+    </div>
+    
+    <div class="info-bar">
+        <div class="info-item">
+            <div class="info-label">Patient ID</div>
+            <div class="info-value" id="patient-id">-</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Condition</div>
+            <div class="info-value" id="patient-condition">-</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Report Date</div>
+            <div class="info-value" id="report-date">-</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Marker Count</div>
+            <div class="info-value" id="marker-count">-</div>
+        </div>
+    </div>
+    
+    <div class="panel-description">
+        <h3>About this Analysis</h3>
+        <p id="panel-description-text">Comprehensive protein biomarker analysis for disease assessment. This panel analyzes 31 key protein markers including inflammatory mediators, mitochondrial function markers, neurotransmitters, and metabolic indicators to provide insights into disease pathophysiology and patient status.</p>
+    </div>
+    
+    <div class="results-section">
+        <h3>Protein Marker Results</h3>
+        
+        <table class="data-table" id="results-table">
+            <thead>
+                <tr>
+                    <th>Protein Marker</th>
+                    <th class="numeric">Patient Value</th>
+                    <th class="numeric">Control Range</th>
+                    <th class="numeric">Relative Position</th>
+                </tr>
+            </thead>
+            <tbody id="results-body">
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 40px; color: #666;">
+                        Loading protein analysis data...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="report-footer">
+        <p>Generated by Gene Panel Analysis System</p>
+        <p>Data processed from 31 Marker Protein Analysis</p>
+    </div>
+
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const patientId = urlParams.get('patient');
+        
+        const API_BASE = 'http://localhost:5001/api';
+        
+        // Format numbers for display
+        function formatNumber(value) {
+            if (value === null || value === undefined || value === 'N/A') return 'N/A';
+            const num = parseFloat(value);
+            if (isNaN(num)) return 'N/A';
+            
+            // Format large numbers with commas
+            if (num >= 1000) {
+                return num.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                });
+            }
+            return num.toFixed(2);
+        }
+        
+        // Get CSS class for relative position styling
+        function getRelativePositionClass(position) {
+            switch(position) {
+                case 'Low': return 'position-low';
+                case 'High': return 'position-high';
+                case 'Normal': return 'position-normal';
+                default: return 'position-na';
+            }
+        }
+        
+        // Load and display report data
+        async function loadReportData() {
+            if (!patientId) {
+                document.getElementById('results-body').innerHTML = 
+                    '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #e74c3c;">Error: Missing patient information</td></tr>';
+                return;
+            }
+            
+            try {
+                // Fetch protein data
+                const response = await fetch(`${API_BASE}/protein/patient/${patientId}`);
+                if (!response.ok) throw new Error('Failed to fetch data');
+                
+                const data = await response.json();
+                
+                // Update header info
+                document.getElementById('panel-title').textContent = `Patient ${patientId}`;
+                document.getElementById('patient-id').textContent = patientId;
+                document.getElementById('patient-condition').textContent = data.patient_condition || 'Unknown';
+                document.getElementById('report-date').textContent = new Date().toLocaleDateString();
+                document.getElementById('marker-count').textContent = data.marker_count;
+                
+                // Update page title
+                document.title = `31 Marker Protein Analysis - Patient ${patientId} - Report`;
+                
+                // Populate results table
+                const tbody = document.getElementById('results-body');
+                tbody.innerHTML = '';
+                
+                data.data.forEach((protein, index) => {
+                    const row = document.createElement('tr');
+                    const positionClass = getRelativePositionClass(protein.relative_position);
+                    row.innerHTML = `
+                        <td class="protein-name">${protein.marker_name}</td>
+                        <td class="numeric">${formatNumber(protein.patient_value)}</td>
+                        <td class="numeric">${protein.control_range || 'N/A'}</td>
+                        <td class="relative-position ${positionClass}">${protein.relative_position || 'N/A'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+            } catch (error) {
+                console.error('Error loading report data:', error);
+                document.getElementById('results-body').innerHTML = 
+                    '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #e74c3c;">Error loading data. Please try again.</td></tr>';
+            }
+        }
+        
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadReportData();
+            
+            // Check if auto-print is requested
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('autoprint') === 'true') {
+                // Wait a bit for content to load, then trigger print
+                setTimeout(() => {
+                    window.print();
+                }, 2000);
+            }
+        });
+        
+        // Export PDF function for external use
+        window.exportToPDF = function() {
+            window.print();
+        };
+    </script>
+</body>
+</html>

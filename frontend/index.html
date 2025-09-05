@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bioinformatics Analysis Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>🧬 Bioinformatics Analysis</h1>
+        <p class="subtitle">Gene expression analysis and custom panel reporting</p>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs">
+        <button class="tab-btn active" onclick="showTab('gene-analysis')">Gene Analysis</button>
+        <button class="tab-btn" onclick="showTab('gene-panels')">Gene Panels</button>
+        <button class="tab-btn" onclick="showTab('protein-analysis')">31 Marker Protein Analysis</button>
+    </nav>
+
+    <!-- Gene Analysis Tab -->
+    <div id="gene-analysis" class="tab-content active">
+        <div class="controls">
+            <div class="control">
+                <label for="source-select">Data Source</label>
+                <select id="source-select"></select>
+            </div>
+            <div class="control inline">
+                <label for="gene-input">Gene Name/ID</label>
+                <input type="text" id="gene-input" list="gene-suggestions" placeholder="Type to search genes...">
+                <datalist id="gene-suggestions"></datalist>
+            </div>
+            <div class="control">
+                <label for="patient-input">Patient ID</label>
+                <input type="text" id="patient-input" placeholder="Patient ID">
+            </div>
+            <div class="control">
+                <button id="plot-btn" class="primary">Plot Gene</button>
+            </div>
+        </div>
+
+        <div class="plot-container">
+            <div class="status" id="status"></div>
+            <div id="plot" class="plot"></div>
+        </div>
+
+        <div class="gene-info">
+            <div class="gene-name"></div>
+            <div class="gene-description"></div>
+        </div>
+    </div>
+
+    <!-- Gene Panels Tab -->
+    <div id="gene-panels" class="tab-content">
+        <div class="panel-controls">
+            <div class="control">
+                <label for="panel-select">Select Panel</label>
+                <select id="panel-select">
+                    <option value="">Choose a panel...</option>
+                </select>
+            </div>
+            <div class="control">
+                <label for="panel-patient-input">Patient ID</label>
+                <select id="panel-patient-input">
+                    <option value="">Select patient...</option>
+                </select>
+            </div>
+            <div class="control">
+                <button id="export-pdf-btn" class="primary" style="display: none;">📄 Export PDF Report</button>
+            </div>
+        </div>
+
+
+        <div class="panel-description" id="panel-description" style="display: none;">
+            <div class="description-card">
+                <h4 id="description-title">About this Panel</h4>
+                <p id="description-text"></p>
+            </div>
+        </div>
+
+        <div class="panel-preview" id="panel-preview" style="display: none;">
+            <h4>Panel Results</h4>
+            <div class="panel-status" id="panel-status"></div>
+            <div id="panel-data-container">
+                <table id="panel-data-table" class="panel-table">
+                    <thead>
+                        <tr>
+                                                            <th>Gene ID</th>
+                                <th>Gene Name</th>
+                                <th>Patient Value</th>
+                                <th>Control Range</th>
+                                <th>Relative Position</th>
+                        </tr>
+                    </thead>
+                    <tbody id="panel-data-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Protein Analysis Tab -->
+    <div id="protein-analysis" class="tab-content">
+        <div class="panel-controls">
+            <div class="control">
+                <label for="protein-patient-input">Patient ID</label>
+                <select id="protein-patient-input">
+                    <option value="">Select patient...</option>
+                </select>
+            </div>
+            <div class="control">
+                <button id="protein-export-pdf-btn" class="primary" style="display: none;">📄 Export PDF Report</button>
+            </div>
+        </div>
+        
+        <div class="panel-status" id="protein-status"></div>
+        
+        <div class="panel-description" id="protein-description" style="display: none;">
+            <div class="description-card">
+                <h4>31 Marker Protein Analysis</h4>
+                <p>Comprehensive protein biomarker analysis for disease assessment. This panel analyzes 31 key protein markers including inflammatory mediators, mitochondrial function markers, neurotransmitters, and metabolic indicators to provide insights into disease pathophysiology and patient status.</p>
+            </div>
+        </div>
+        
+        <div class="panel-preview" id="protein-preview" style="display: none;">
+            <h4>Protein Analysis Results</h4>
+            
+            <!-- Radar Chart Section -->
+            <div class="radar-chart-container" id="protein-radar-container">
+                <h5>Functional Category Analysis</h5>
+                <div class="chart-wrapper">
+                    <canvas id="protein-radar-chart" width="400" height="400"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item" data-dataset="0">
+                        <span class="legend-color patient-color"></span>
+                        <span>You</span>
+                    </div>
+                    <div class="legend-item" data-dataset="1">
+                        <span class="legend-color control-color"></span>
+                        <span>Healthy Controls</span>
+                    </div>
+                    <div class="legend-item" data-dataset="2">
+                        <span class="legend-color other-patients-color"></span>
+                        <span>Other Patients</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="protein-data-container">
+                <table id="protein-data-table" class="panel-table">
+                    <thead>
+                        <tr>
+                            <th>Protein Marker</th>
+                            <th>Patient Value</th>
+                            <th>Control Range</th>
+                            <th>Relative Position</th>
+                        </tr>
+                    </thead>
+                    <tbody id="protein-data-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Powered by DESeq2 analysis pipeline</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+    <script src="panels.js"></script>
+    <script src="proteins.js"></script>
+</body>
+</html>

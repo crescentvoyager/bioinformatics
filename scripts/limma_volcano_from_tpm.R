@@ -3,7 +3,7 @@
 # Volcano plot from TPM using limma-trend (fallback when counts are not available)
 # Inputs:
 #   - Gene-level TPM CSV with columns: gene_id, gene_name, then sample columns
-#   - Metadata CSV mapping sample -> condition (control, case)
+#   - Metadata CSV mapping sample -> condition (HC, D)
 # Outputs:
 #   - outputs/limma_results_tpm.csv
 #   - outputs/volcano_tpm.pdf and outputs/volcano_tpm.png
@@ -50,8 +50,8 @@ if (!all(samples$sample %in% colnames(expr))) {
 expr <- expr[, samples$sample, drop = FALSE]
 
 samples$condition <- factor(samples$condition)
-if (!all(c("control", "case") %in% levels(samples$condition))) stop("'condition' must include both 'control' and 'case'.")
-samples$condition <- stats::relevel(samples$condition, ref = "control")
+if (!all(c("HC", "D") %in% levels(samples$condition))) stop("'condition' must include both 'HC' and 'D'.")
+samples$condition <- stats::relevel(samples$condition, ref = "HC")
 
 # ---------- limma-trend analysis ----------
 logTPM <- log2(as.matrix(expr) + 0.5)
@@ -80,7 +80,7 @@ volcano_plot <- EnhancedVolcano::EnhancedVolcano(
   FCcutoff = 1.0,
   pointSize = 2.0,
   labSize = 3.0,
-  title = "Case vs Control (TPM, limma-trend)",
+  title = "Disease vs Healthy Control (TPM, limma-trend)",
   subtitle = "log2FC vs FDR"
 )
 

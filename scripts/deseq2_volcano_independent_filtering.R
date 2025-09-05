@@ -3,7 +3,7 @@
 # Differential expression (DESeq2) and volcano plot pipeline
 # Inputs:
 #   - Gene-level counts matrix TSV with columns: gene_id, optional gene_name, then sample columns
-#   - Metadata CSV mapping sample -> condition (levels: control, case)
+#   - Metadata CSV mapping sample -> condition (levels: HC, D)
 # Outputs:
 
 #   - outputs/deseq2_results.csv
@@ -36,9 +36,13 @@ output_dir   <- "/Users/alexcrescent/Documents/Coding/bioinformatics/outputs"
 # Plot tuning (adjust to taste)
 use_shrunk_lfc_for_x <- FALSE   # Use unshrunk LFC on x for better spread while keeping shrunk stats
 y_metric <- "pvalue"            # switch to raw p-values for better volcano shape
-fc_cutoff <- 1.0                # 2x fold-change (industry standard)
+fc_cutoff <- 0.585              # 1.5x fold-change (more stringent)
 xlim_range <- c(-5, 5)          # symmetric x-axis limits (wider view)
-base_mean_min <- 20             # filter out very low-expression genes by baseMean
+# base_mean_min <- 20             # Not used - relying on DESeq2's independent filtering
+
+# Create descriptive filename suffix with filtering parameters
+fc_linear <- round(2^fc_cutoff, 1)  # Convert log2 to linear fold change
+filter_suffix <- sprintf("independent_filter_fc%.1fx_p%.2f_%s", fc_linear, 0.05, y_metric)
 
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -77,28 +81,26 @@ count_matrix <- count_matrix[, coldata$sample, drop = FALSE]
 
 # Validate conditions
 if (any(is.na(coldata$condition)) || any(coldata$condition == "")) {
-  stop("Please fill 'condition' for all samples in samples.csv (use 'control' or 'case').")
+  stop("Please fill 'condition' for all samples in samples.csv (use 'HC' or 'D').")
 }
 coldata$condition <- factor(coldata$condition)
-if (!all(c("control", "case") %in% levels(coldata$condition))) {
-  stop("'condition' must include both 'control' and 'case'.")
+if (!all(c("HC", "D") %in% levels(coldata$condition))) {
+  stop("'condition' must include both 'HC' and 'D'.")
 }
-coldata$condition <- relevel(coldata$condition, ref = "control")
+coldata$condition <- relevel(coldata$condition, ref = "HC")
 
 # ---------- DESeq2 analysis ----------
 dds <- DESeq2::DESeqDataSetFromMatrix(countData = count_matrix, colData = coldata, design = ~ condition)
 
-# Filter low counts: keep genes with at least 10 counts in at least 2 samples
-keep <- rowSums(DESeq2::counts(dds) >= 10) >= 2
-dds <- dds[keep, ]
-
-# Preserve gene IDs after filtering; DESeq2 results will follow this order
+# Use DESeq2's built-in independent filtering (no manual pre-filtering)
+# DESeq2 will automatically determine optimal filtering threshold
+# Preserve gene IDs; DESeq2 results will follow this order
 gene_ids <- rownames(dds)
 
 dds <- DESeq2::DESeq(dds)
 
 # LFC shrinkage for better effect size estimates
-coef_name <- "condition_case_vs_control"
+coef_name <- "condition_D_vs_HC"
 res_shrunk <- NULL
 if (requireNamespace("apeglm", quietly = TRUE)) {
   res_shrunk <- DESeq2::lfcShrink(dds, coef = coef_name, type = "apeglm")
@@ -110,7 +112,8 @@ if (requireNamespace("apeglm", quietly = TRUE)) {
 }
 
 # Also keep unshrunk results (for optional x-axis spread and baseMean)
-res_unshrunk <- as.data.frame(DESeq2::results(dds, name = coef_name))
+# independentFiltering=TRUE (default) will automatically filter low-count genes
+res_unshrunk <- as.data.frame(DESeq2::results(dds, name = coef_name, independentFiltering = TRUE))
 
 res_df <- as.data.frame(res_shrunk)
 
@@ -137,13 +140,19 @@ if (has_gene_name) {
 # Order by adjusted p-value
 res_df <- res_df[order(res_df$padj, res_df$pvalue), ]
 
-# Filter low expression genes for plotting (keeps DESeq2 stats intact)
-if ("baseMean" %in% colnames(res_df)) {
-  res_df <- res_df[is.na(res_df$baseMean) | res_df$baseMean >= base_mean_min, ]
-}
+# Note: No additional baseMean filtering - using DESeq2's independent filtering
+# Genes filtered by DESeq2 will have padj = NA
 
-# Write results
-utils::write.csv(res_df, file = file.path(output_dir, "deseq2_results.csv"), row.names = TRUE)
+# Write summary results (DESeq2 results only)
+utils::write.csv(res_df, file = file.path(output_dir, paste0("deseq2_results_", filter_suffix, ".csv")), row.names = TRUE)
+
+# Create full export with original counts + DESeq2 results
+full_data <- merge(raw, res_df[, c("gene_id", "baseMean", "log2FoldChange", "lfcSE", "pvalue", "padj")], 
+                   by = "gene_id", all.x = TRUE)
+# Reorder columns: gene info, then sample counts, then DESeq2 results
+count_cols <- setdiff(colnames(raw), c("gene_id", "gene_name"))
+full_data_ordered <- full_data[, c("gene_id", "gene_name", count_cols, "baseMean", "log2FoldChange", "lfcSE", "pvalue", "padj")]
+utils::write.csv(full_data_ordered, file = file.path(output_dir, paste0("deseq2_full_data_", filter_suffix, ".csv")), row.names = FALSE)
 
 # ---------- Volcano plot ----------
 lab_vec <- res_df$gene_name  # labels strictly use gene names
@@ -174,11 +183,11 @@ class_df <- data.frame(
   labeled = labeled_flag,
   stringsAsFactors = FALSE
 )
-utils::write.csv(class_df, file = file.path(output_dir, "volcano_points_classification.csv"), row.names = FALSE)
+utils::write.csv(class_df, file = file.path(output_dir, paste0("volcano_points_classification_", filter_suffix, ".csv")), row.names = FALSE)
 red_df <- class_df[class_df$category == "p-value and log2 FC", ]
 ord <- order(red_df[[y_metric]], -abs(red_df$log2FoldChange), na.last = TRUE)
 red_df <- red_df[ord, ]
-utils::write.csv(red_df, file = file.path(output_dir, "volcano_red_points.csv"), row.names = FALSE)
+utils::write.csv(red_df, file = file.path(output_dir, paste0("volcano_red_points_", filter_suffix, ".csv")), row.names = FALSE)
 
 volcano_plot <- EnhancedVolcano::EnhancedVolcano(
   res_df,
@@ -189,7 +198,7 @@ volcano_plot <- EnhancedVolcano::EnhancedVolcano(
   FCcutoff = fc_cutoff,
   pointSize = 2.0,
   labSize = 3.0,
-  title = "Case vs Control (DESeq2)",
+  title = "Disease vs Healthy Control (DESeq2 - Independent Filtering)",
   subtitle = if (identical(y_metric, "padj")) "log2FC vs FDR" else "log2FC vs p-value",
   xlim = xlim_range,
   ylim = {
@@ -208,17 +217,18 @@ volcano_plot <- EnhancedVolcano::EnhancedVolcano(
   max.overlaps = 100
 )
 
-# Save plots
-grDevices::pdf(file.path(output_dir, "volcano.pdf"), width = 8, height = 6)
+# Save plots with descriptive names
+plot_prefix <- paste0("volcano_", filter_suffix)
+grDevices::pdf(file.path(output_dir, paste0(plot_prefix, ".pdf")), width = 8, height = 6)
 print(volcano_plot)
 grDevices::dev.off()
 
-grDevices::png(file.path(output_dir, "volcano.png"), width = 1600, height = 1200, res = 200)
+grDevices::png(file.path(output_dir, paste0(plot_prefix, ".png")), width = 1600, height = 1200, res = 200)
 print(volcano_plot)
 grDevices::dev.off()
 
 message(sprintf("Done. Results: %s | Plots: %s", 
-                file.path(output_dir, "deseq2_results.csv"), 
-                file.path(output_dir, "volcano.{pdf,png}")))
+                file.path(output_dir, paste0("deseq2_results_", filter_suffix, ".csv")), 
+                file.path(output_dir, paste0(plot_prefix, ".{pdf,png}"))))
 
 
